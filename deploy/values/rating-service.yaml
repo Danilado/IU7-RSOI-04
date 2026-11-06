@@ -1,0 +1,2 @@
+port: 8050
+databaseSecretKey: RATING_DATABASE_URL

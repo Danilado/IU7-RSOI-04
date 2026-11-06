@@ -1,0 +1,5 @@
+apiVersion: v2
+name: rsoi-service
+description: HTTP service for the Library System
+type: application
+version: 0.1.0

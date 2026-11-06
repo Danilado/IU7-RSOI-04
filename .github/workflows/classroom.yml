@@ -1,35 +1,54 @@
 name: GitHub Classroom Workflow
+
 on:
   push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+    branches: [master]
+
+permissions:
+  contents: read
+
 jobs:
-  build:
-    name: Autograding
-    runs-on: ubuntu-latest
+  deploy:
+    name: Deploy to homelab and run Classroom tests
+    runs-on: [self-hosted, linux, x64, rsoi04]
+    timeout-minutes: 35
+    concurrency:
+      group: rsoi04-test
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      checks: write
+    env:
+      KUBECONFIG: /etc/rsoi04/runner.kubeconfig
+      NAMESPACE: test
+      VARIANT: v4
+      IMAGE_PREFIX: ${{ vars.IMAGE_PREFIX }}
+      IMAGE_TAG: ${{ github.sha }}
+      INGRESS_HOST: ${{ vars.INGRESS_HOST }}
+      BASE_URL: ${{ vars.BASE_URL }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-
-      - uses: docker/setup-buildx-action@v2
-
-      # TODO build and run unit tests
-
-      - name: Build images
-        timeout-minutes: 10
-        run: docker compose build --push
-
-      # TODO deploy to k8s with liveness and readyness probes
-
-      - name: Wait before services are ready
-        run: kubectl wait -n test -l app.kubernetes.io/name=gateway pod --for=condition=Ready --timeout 3m
-      
-      # TODO setup parameters in classroom/autograding.json
-      
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Newman
+        run: |
+          npm install --prefix "$RUNNER_TEMP/rsoi04-tools" --no-save newman@6
+          echo "$RUNNER_TEMP/rsoi04-tools/node_modules/.bin" >> "$GITHUB_PATH"
+      - name: Run unit tests
+        run: |
+          npm ci --prefix gateway
+          npm test --prefix gateway
+      - name: Build and publish images
+        run: bash scripts/build-images.sh
+      - name: Deploy services
+        run: bash scripts/deploy.sh
+      - name: Check the Ingress
+        run: curl --fail --show-error --silent --retry 8 --retry-all-errors --max-time 5 "$BASE_URL/manage/health"
       - name: Autograding
         uses: education/autograding@v1
-        continue-on-error: true
+      - name: Kubernetes status on failure
+        if: failure()
+        run: kubectl -n "$NAMESPACE" get deployment,statefulset,pod,service,ingress

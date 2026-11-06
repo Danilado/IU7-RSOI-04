@@ -1,0 +1,2 @@
+port: 8070
+databaseSecretKey: RESERVATION_DATABASE_URL

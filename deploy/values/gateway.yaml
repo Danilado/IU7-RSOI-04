@@ -1,0 +1,7 @@
+port: 8080
+env:
+  LIBRARY_URL: http://library-service:8060
+  RESERVATION_URL: http://reservation-service:8070
+  RATING_URL: http://rating-service:8050
+ingress:
+  enabled: true

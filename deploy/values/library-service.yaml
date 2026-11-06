@@ -1,0 +1,2 @@
+port: 8060
+databaseSecretKey: LIBRARY_DATABASE_URL
