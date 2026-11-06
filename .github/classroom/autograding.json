@@ -3,7 +3,7 @@
     {
       "name": "Library System v4 failover through Ingress",
       "setup": "",
-      "run": "bash scripts/test-script.sh v4 rating-service test",
+      "run": "bash -c 'source .github/classroom/runtime.env && exec bash scripts/test-script.sh v4 rating-service test'",
       "input": "",
       "output": "",
       "comparison": "included",
